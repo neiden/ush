@@ -47,7 +47,7 @@ int main () {
   ssize_t len = getinput(&line, &size);
 
   while(len != -1) {
-	processline (line);
+    processline (line);
     len = getinput(&line, &size);
   }
 
