@@ -126,6 +126,7 @@ ssize_t getinput(char** line, size_t* size) {
 void processline (char *line)
 {
   assert(line != NULL);
+  char** args = argparse(line);
 
   pid_t cpid; 
   int   status;
@@ -137,7 +138,7 @@ void processline (char *line)
     break;
     
   case 0:
-    execlp(line, line, (char*)0);
+    execvp(*arg, arg);
     perror("exec");
     exit(EXIT_FAILURE);
     
