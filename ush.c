@@ -23,6 +23,49 @@
  */
 void processline (char *line);
 
+int numElements(char* line){
+    char* p = line;
+    int count = 0;
+    while(*p != '\0'){
+        if((*p != 32 && (*(p+1) == 32 || *(p+1) == '\0'))){
+            ++count;
+        }
+        ++p;
+    }
+    return count;
+}
+
+char** argparse(char* line){
+    
+    char n[(strlen(line) + 1)];
+    strcpy(n, line);
+    int elements = numElements(n) + 1;
+    char* x = n;
+    int count = 0;
+    
+    char** args = (char**)malloc(elements*sizeof(char*));
+    
+    while(*x != '\0'){
+        while(*x == 32){
+            ++x;
+        }
+        args[count] = x;
+        ++count;
+        while(*x != 32 && *x != '\0'){
+            ++x
+        }
+        if(*x != '\0'){
+            x[0] = '\0';
+            ++x;
+        }
+    }
+    if(*line != '\0'){
+        args[count] = x;
+    }
+}
+
+
+
 /* Get Input
  * line     A pointer to a char* that points at a buffer of size *size or NULL.
  * size     The size of the buffer *line or 0 if *line is NULL.
