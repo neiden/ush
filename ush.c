@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <ctype.h>
 
 
 /* CONSTANTS */ 
@@ -22,46 +23,55 @@
  * new process that executes that command.  
  */
 void processline (char *line);
+int numElements(char* line);
+char** argparse(char* line);
 
-int numElements(char* line){
-    char* p = line;
-    int count = 0;
-    while(*p != '\0'){
-        if((*p != 32 && (*(p+1) == 32 || *(p+1) == '\0'))){
-            ++count;
-        }
-        ++p;
-    }
-    return count;
-}
+
+static int numElements(char* line){
+  char* p = line;
+  int count = 0;
+  while(*p != '\0'){
+    if((!isspace(*p) && (isspace(*(p+1)) || *(p+1) == '\0'))){
+	++count;
+      }
+    ++p;
+  }
+  return count;  
+} 
 
 char** argparse(char* line){
-    
-    char n[(strlen(line) + 1)];
+  if(*line != '\0'){
+    char n[(strlen(line)+1)];
     strcpy(n, line);
     int elements = numElements(n) + 1;
     char* x = n;
     int count = 0;
-    
+  
     char** args = (char**)malloc(elements*sizeof(char*));
-    
+
+
     while(*x != '\0'){
-        while(*x == 32){
-            ++x;
-        }
-        args[count] = x;
-        ++count;
-        while(*x != 32 && *x != '\0'){
-            ++x
-        }
-        if(*x != '\0'){
-            x[0] = '\0';
-            ++x;
-        }
+      while(isspace(*x)){
+	++x;
+      }
+      args[count] = x;
+      ++count;
+      while(!isspace(*x) && *x != '\0'){
+	++x;
+      }
+      if(*x != '\0'){
+	x[0] = '\0';	     
+	++x;
+      }
     }
     if(*line != '\0'){
-        args[count] = x;
+      args[count] = x;
     }
+    
+    return args;
+  }
+  return '\0';
+
 }
 
 
@@ -138,7 +148,8 @@ void processline (char *line)
     break;
     
   case 0:
-    execvp(*arg, arg);
+    execvp(args[0], args);
+    free(args);
     perror("exec");
     exit(EXIT_FAILURE);
     
