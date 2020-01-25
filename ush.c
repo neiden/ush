@@ -26,8 +26,7 @@ void processline (char *line);
 int numElements(char* line);
 char** argparse(char* line);
 
-
-static int numElements(char* line){
+int numElements(char* line){
   char* p = line;
   int count = 0;
   while(*p != '\0'){
