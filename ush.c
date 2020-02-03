@@ -1,3 +1,4 @@
+
 /* CS 347 -- Mini Shell!
  * Original author Phil Nelson 2000
  * Modified by Aran Clauson 2019
@@ -10,9 +11,8 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <ctype.h>
 #include "argparse.h"
-
+#include "builtin.h"
 
 /* CONSTANTS */
 
@@ -24,8 +24,6 @@
  * new process that executes that command.
  */
 void processline (char *line);
-
-
 
 /* Get Input
  * line     A pointer to a char* that points at a buffer of size *size or NULL.
@@ -89,31 +87,36 @@ void processline (char *line)
     assert(line != NULL);
     int* argcp = 0;
     char** args = argparse(line, &argcp);
+   // printf("%s\n", args[0]);
 
     pid_t cpid;
     int   status;
-
     if(argcp != 0) {
+        int built = builtin(args, argcp);
+
+        if(built == 0) {
 
 
-        cpid = fork();
-        switch (cpid) {
-            case -1:
-                perror("fork");
-                break;
+            cpid = fork();
+            switch (cpid) {
+                case -1:
+                    perror("fork");
+                    break;
 
-            case 0:
-                execvp(args[0], args);
-                perror("exec");
-                exit(EXIT_FAILURE);
+                case 0:
+                    execvp(args[0], args);
+                    perror("exec");
+                    exit(EXIT_FAILURE);
 
-            default:
-                wait(&status);
-                break;
+                default:
+                    wait(&status);
+                    break;
+            }
         }
+
+
         free(args);
     }
 
 }
-
 
