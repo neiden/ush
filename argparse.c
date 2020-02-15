@@ -9,19 +9,19 @@
 static int numElements(char* line){
     enum {BET, ARG, QUOTE} state = BET;
     int count = 0;
-    while(*line != NULL){
+    while(*line != '\0'){
         if(!isspace(*line)){
             if(state == BET){
                 ++count;
                 state = ARG;
             }
             if(state == ARG){
-                if(*line == 34){
+                if(*line == '\"'){
                     state = QUOTE;
                 }
             }
             else{
-                if(*line == 34){
+                if(*line == '\"'){
                     state = ARG;
                 }
             }
@@ -52,18 +52,18 @@ char** argparse(char* line, int* argcp){
     enum {BET, ARG, QUOTE} state = BET;
 
 
-    while(*line != NULL){
+    while(*line != '\0'){
         if(!isspace(*line)){
             if(state == BET){
-                if(*line != 34){
+                if(*line != '\"'){
                     args[count] = line;
                     ++count;
                 }
                 state = ARG;
             }
             if(state == ARG){
-                if(*line == 34){
-                    if(line[1] == 34){
+                if(*line == '\"'){
+                    if(line[1] == '\"'){
                         args[count] = NULL;
                     }
                     else{
@@ -76,15 +76,15 @@ char** argparse(char* line, int* argcp){
                 }
             }
             else{
-                if(*line == 34){
-                    *line = NULL;
+                if(*line == '\"'){
+                    *line = '\0';
                     state = ARG;
                 }
             }
         }
         else{
             if(state == ARG){
-                *line = NULL;
+                *line = '\0';
                 state = BET;
             }
         }

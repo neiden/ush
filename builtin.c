@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 static int isBuiltin(char** args);
 static void execBuiltin(char** args, int builtin, int elements);
@@ -39,9 +40,20 @@ void builtinAecho(char* args[], int elements){
 
 }
 
+void builtinCD(char* args[], int elements){
+  if(elements > 1){
+    if(strcmp(args[1], "..") == 0 ){
+      chdir("..");
+    }
+    else{
+      chdir(args[1]);
+    }
+  }
+}
+
 typedef void (*builtin_t)(char* args[], int elements);
 static builtin_t builtins[] = {&builtinExit, &builtinAecho, NULL};
-static char* builtinNames[] = {"exit", "aecho"};
+static char* builtinNames[] = {"exit", "aecho","cd"};
 static int numBuiltins = sizeof(builtinNames) / sizeof(builtinNames[0]);
 
 int builtin(char** args, int elements){
@@ -74,5 +86,7 @@ static void execBuiltin(char** args, int idx, int elements){
                 break;
         case 1: builtinAecho(args, elements);
                 break;
+    case 2:  builtinCD(args, elements);
+	        break;
     }
 }

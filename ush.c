@@ -25,6 +25,8 @@
  */
 void processline (char *line);
 
+int expand(char*  orig, char* new, int newsize);
+
 /* Get Input
  * line     A pointer to a char* that points at a buffer of size *size or NULL.
  * size     The size of the buffer *line or 0 if *line is NULL.
@@ -85,9 +87,9 @@ ssize_t getinput(char** line, size_t* size) {
 void processline (char *line)
 {
     assert(line != NULL);
-    int* argcp = 0;
+    int argcp = 0;
     char** args = argparse(line, &argcp);
-   // printf("%s\n", args[0]);
+    // printf("%s\n", args[0]);
 
     pid_t cpid;
     int   status;
@@ -115,8 +117,9 @@ void processline (char *line)
         }
 
 
-        free(args);
+     
     }
+    free(args);
 
 }
 
