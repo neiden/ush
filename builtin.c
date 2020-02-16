@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 static int isBuiltin(char** args);
-static void execBuiltin(char** args, int builtin, int elements);
+
 
 void builtinExit(char* args[], int elements){
     int rtrnVal = 0;
@@ -51,42 +51,46 @@ void builtinCD(char* args[], int elements){
   }
 }
 
+void builtinEnvSet(char* args[], int elements){
+    if(elements > 2){
+        setenv(args[1], args[2], 1);
+    }
+    else{
+        printf("Require a variable name and definition.\n");
+
+    }
+}
+
+void builtinUnsetEnv(char* args[], int elements){
+    if(elements > 1){
+        unsetenv(args[1]);
+    }
+    else{
+        printf("No variable name specified.\n");
+    }
+}
+
 typedef void (*builtin_t)(char* args[], int elements);
-static builtin_t builtins[] = {&builtinExit, &builtinAecho, NULL};
-static char* builtinNames[] = {"exit", "aecho","cd"};
-static int numBuiltins = sizeof(builtinNames) / sizeof(builtinNames[0]);
+static builtin_t builtins[] = {&builtinExit, &builtinAecho, &builtinCD, &builtinEnvSet, &builtinUnsetEnv, NULL};
+static char* builtinNames[] = {"exit", "aecho","cd", "envset", "unsetenv", NULL};
+
 
 int builtin(char** args, int elements){
     int idx = isBuiltin(args);
     if(idx != -1){
-        execBuiltin(args, idx, elements);
-        return 1;
+        builtins[idx](args, elements);
     }
-    else{
-        return 0;
-    }
+    return idx != -1;
+
 }
 
 static int isBuiltin(char** args){
-    while(*args != NULL) {
-        for (int i = 0; i < numBuiltins; i++) {
-            if (strcmp(*args, builtinNames[i]) == 0) {
-                return i;
-            }
-        }
-        ++args;
+    int i = 0;
+    while(builtinNames[i] != NULL &&
+    strcmp(builtinNames[i], args[0]) != 0){
+        ++i;
     }
-    return -1;
+
+    return builtinNames[i] != NULL ? i : -1;
 }
 
-
-static void execBuiltin(char** args, int idx, int elements){
-    switch(idx){
-        case 0: builtinExit(args, elements);
-                break;
-        case 1: builtinAecho(args, elements);
-                break;
-    case 2:  builtinCD(args, elements);
-	        break;
-    }
-}
