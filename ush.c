@@ -25,6 +25,16 @@
  */
 void processline (char *line);
 
+
+/*Expand
+ * Nonfunctional; ideally the program would iterate through orig (the input line) and
+ * copy every value into new, excepting the character '$', '{', and '}'. The variables
+ * for expanding would be then be iterated over and added as the next values for new. 
+ * The enums signify from which source new is taking new values from:
+ *              OUT         - new[idx] = *orig
+ *              START, BET, - new waits for environment variable to be found before iterating over.
+ * 
+ */
 int expand(char*  orig, char* new, int newsize);
 
 /* Get Input
@@ -39,12 +49,15 @@ int expand(char*  orig, char* new, int newsize);
  */
 ssize_t getinput(char** line, size_t* size);
 
+
 /* Main
  *
  * This function is the main entry point to the program.  This is essentially
  * the primary read-eval-print loop of the command interpreter.
  */
 int main () {
+
+
 
     char*   line = NULL;
     size_t  size = 0;
@@ -77,7 +90,73 @@ ssize_t getinput(char** line, size_t* size) {
 
     return len;
 }
+/*Stripping function
+ * 
+ * Helper method to remove a given character from a string. Uses memmove to leave no 
+ * space behind from the removed index. 
+ */
+void strip(char* line, char n){
+    int len = strlen(line);
+    for(int i = 0; i < len; i++){
+        if(line[i] == n){
+            memmove(&line[i], &line[i+1], len - i);
+        }
+    }
+}
 
+
+
+int expand(char* orig, char* new, int newsize){
+    enum {START, BET, OUT} state = OUT;
+    char buffer[newsize];
+    char* var;
+    char* ptr;
+    int idx = 0;
+    int flag = 0;
+    new = buffer;
+
+
+
+
+    while(*orig != '\0'){
+
+        if(*orig == '$') {
+            state = START;
+        }
+
+        if(state == OUT){
+            new[idx] = *orig;
+            ++idx;
+        }
+
+        if(*orig == '{' && state == START){
+            state = BET;
+        }
+        if(*orig == '}'){
+            if(state == BET){
+                strip(ptr, '}');
+
+                var = getenv(ptr);
+                while(*var != '\0'){
+                    new[idx] = *var;
+                    ++idx;
+                    ++var;
+                }
+                
+                state = OUT;
+            }
+        }
+
+        ++orig;
+        if(state == BET && flag == 0){
+            ptr = orig;
+            ++flag;
+        }
+
+
+}
+    orig = new;
+}
 
 /* Process Line
  *
@@ -87,16 +166,18 @@ ssize_t getinput(char** line, size_t* size) {
 void processline (char *line)
 {
     assert(line != NULL);
+    char* buffer = "";
+    expand(line, line, 1024);
     int argcp = 0;
     char** args = argparse(line, &argcp);
-    // printf("%s\n", args[0]);
+
+
 
     pid_t cpid;
     int   status;
     if(argcp != 0) {
-        int built = builtin(args, argcp);
 
-        if(built == 0) {
+        if(!builtin(args, argcp)) {
 
 
             cpid = fork();
@@ -119,7 +200,7 @@ void processline (char *line)
 
      
     }
+
     free(args);
 
 }
-
