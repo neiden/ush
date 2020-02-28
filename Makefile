@@ -1,5 +1,5 @@
 output: argparse.o builtin.o ush.o
-	gcc argparse.o builtin.o ush.o -o output
+	gcc -lm argparse.o builtin.o ush.o -o output
 
 ush.o: ush.c argparse.h builtin.h  
 	gcc -c ush.c
