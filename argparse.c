@@ -5,12 +5,18 @@
 #include <ctype.h>
 #include <stdio.h>
 #include "argparse.h"
+#include <string.h>
 
 static int numElements(char* line){
-    enum {BET, ARG, QUOTE} state = BET;
+    enum {BET, ARG, QUOTE, COMMENT} state = BET;
     int count = 0;
     while(*line != '\0'){
         if(!isspace(*line)){
+            if(*line == '#' ){
+                if(state != QUOTE){
+                    state = COMMENT;
+                }
+            }
             if(state == BET){
                 ++count;
                 state = ARG;
@@ -32,8 +38,13 @@ static int numElements(char* line){
                 state = BET;
             }
         }
+        if(state == COMMENT){
+            *line = '\0';
+        }
+        else{
+            ++line;
+        }
 
-        ++line;
     }
 
 
@@ -43,41 +54,43 @@ static int numElements(char* line){
     return count;
 }
 
+void removeQuotes(char* line) {
+    char *new = line;
+    if (line != NULL) {
+    while (*line != '\0') {
+        if (*new != '\"') {
+            *line = *new;
+            ++line;
+        }
+        ++new;
+    }
+    }
+}
+
 char** argparse(char* line, int* argcp){
     int elements = numElements(line);
     *argcp = elements;
     int count = 0;
 
-    char** args = (char**)malloc((elements + 1)*sizeof(char*));
+    char** args = malloc((elements+1)*sizeof(char*));
     enum {BET, ARG, QUOTE} state = BET;
 
 
     while(*line != '\0'){
         if(!isspace(*line)){
+
             if(state == BET){
-                if(*line != '\"'){
-                    args[count] = line;
-                    ++count;
-                }
+                args[count] = line;
+                ++count;
                 state = ARG;
             }
             if(state == ARG){
                 if(*line == '\"'){
-                    if(line[1] == '\"'){
-                        args[count] = NULL;
-                    }
-                    else{
-                        ++line;
-                        args[count] = line;
-
-                    }
-                    ++count;
                     state = QUOTE;
                 }
             }
             else{
                 if(*line == '\"'){
-                    *line = '\0';
                     state = ARG;
                 }
             }
@@ -88,8 +101,15 @@ char** argparse(char* line, int* argcp){
                 state = BET;
             }
         }
+
         ++line;
+
+
+    }
+    for(int i = 0; i < elements; i++){
+        removeQuotes(args[i]);
     }
 
     return args;
 }
+
