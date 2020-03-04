@@ -1,14 +1,8 @@
-output: argparse.o builtin.o ush.o
-	gcc argparse.o builtin.o ush.o -o output -lm
+OBJS=argparse.o builtin.o ush.o
+HEADERS=argparse.h builtin.h
 
-ush.o: ush.c argparse.h builtin.h  
-	gcc -c ush.c -lm
-
-argparse.o: argparse.c argparse.h
-	gcc -c argparse.c -lm
-
-builtin.o: builtin.c builtin.h
-	gcc -c builtin.c -lm
+ush: ${OBJS} ${HEADERS}
+	${CC} ${CFLAGS} -o ush ${OBJS} -lm
 
 clean:
-	rm *.o output
+	rm *.o ush
