@@ -13,6 +13,8 @@
 #include <sys/wait.h>
 #include "argparse.h"
 #include "builtin.h"
+#include <math.h>
+#include <fcntl.h>
 
 /* CONSTANTS */
 
@@ -59,12 +61,15 @@ int main () {
 
 
 
+
+    signal(SIGINT, SIG_IGN);
     char*   line = NULL;
     size_t  size = 0;
     ssize_t len = getinput(&line, &size);
 
     while(len != -1) {
         processline (line);
+
         len = getinput(&line, &size);
     }
 
@@ -90,73 +95,188 @@ ssize_t getinput(char** line, size_t* size) {
 
     return len;
 }
-/*Stripping function
- * 
- * Helper method to remove a given character from a string. Uses memmove to leave no 
- * space behind from the removed index. 
- */
-void strip(char* line, char n){
-    int len = strlen(line);
-    for(int i = 0; i < len; i++){
-        if(line[i] == n){
-            memmove(&line[i], &line[i+1], len - i);
-        }
+
+
+int getDigits(int num){
+    int count = 0;
+    while(num > 0){
+        num /= 10;
+        ++count;
     }
+    return count;
 }
 
-
-
 int expand(char* orig, char* new, int newsize){
-    enum {START, BET, OUT} state = OUT;
-    char buffer[newsize];
-    char* var;
-    char* ptr;
-    int idx = 0;
-    int flag = 0;
-    new = buffer;
+    enum { VARBET, START, CMDBET, OUT} state = OUT;
+    char* var = orig;
+    char* final = orig;
+    char* value;
+    int varIdx = 0;
+    int newIdx = 0;
+    int expanded = 0;
+
+    if(*orig == '\0'){
+        return "";
+    }
+
 
 
 
 
     while(*orig != '\0'){
 
-        if(*orig == '$') {
+        if(*orig == '$' && state == OUT) {
+            new[newIdx] = *orig;
+            ++newIdx;
             state = START;
         }
 
-        if(state == OUT){
-            new[idx] = *orig;
-            ++idx;
+        else if(*orig == '$' && state == START){
+            --newIdx;
+            int value = getpid();
+            int digits = getDigits(value) - 1;
+            while(value > 0){
+                new[newIdx] = (value / (int)pow(10, digits)) + '0';
+                value %= (int)pow(10, digits);
+                --digits;
+                ++newIdx;
+            }
+            ++orig;
+            state = OUT;
         }
 
-        if(*orig == '{' && state == START){
-            state = BET;
+        else if((*orig != '{' && *orig != '(') && state == START){
+            state = OUT;
         }
-        if(*orig == '}'){
-            if(state == BET){
-                strip(ptr, '}');
+        else if(*orig == '(' && state == START){
+            var = orig;
+            state = CMDBET;
+        }
 
-                var = getenv(ptr);
-                while(*var != '\0'){
-                    new[idx] = *var;
-                    ++idx;
-                    ++var;
+        else if(*orig == '{' && state == START){
+            var = orig;
+            state = VARBET;
+        }
+
+        else if(*orig == ')' && state == CMDBET){
+            var[varIdx] = '\0';
+            ++var;
+            --newIdx;
+
+            char buffer[newsize];
+            char argc = 0;
+            char** args = argparse(var, &argc);
+            int status;
+            int fd[2];
+            if(pipe(fd) == -1){
+                perror("pipe");
+                exit(1);
+            }
+
+            pid_t cid = fork();
+            if(cid == -1){
+                perror("fork");
+                exit(1);
+            }
+            else if (cid == 0){
+                if(dup2(fd[1], STDOUT_FILENO) == -1){
+                    perror("dup2");
+                    exit(1);
                 }
-                
-                state = OUT;
+                close(fd[1]);
+                close(fd[0]);
+                execvp(args[0], args);
+                perror("exec");
+                exit(1);
+            }
+            else{
+                close(fd[1]);
+                for(int i = 0; (i = read(fd[0], buffer, newsize)) > 0;){
+                    write(STDOUT_FILENO, value, i);
+                }
+
+                close(fd[0]);
+                wait(&status);
+
+            }
+
+
+
+            char buff[1024];
+            if(value != NULL) {
+                expand(value, buff, 1024);
+
+                for (int i = 0; i < strlen(value); i++) {
+                    new[newIdx] = value[i];
+                    ++newIdx;
+                }
+                expanded = 1;
+            }
+            else{
+                printf("Failed to execute command %s", var);
+            }
+
+            varIdx = 0;
+            state = OUT;
+
+        }
+
+        else if(*orig == '}' && state == VARBET){
+            var[varIdx] = '\0';
+            ++var;
+            --newIdx;
+
+            value = getenv(var);
+            char buff[1024];
+            if(value != NULL) {
+                expand(value, buff, 1024);
+
+                for (int i = 0; i < strlen(value); i++) {
+                    new[newIdx] = value[i];
+                    ++newIdx;
+                }
+                expanded = 1;
+            }
+            else{
+                printf("No value associated with variable %s\n", var);
+            }
+            varIdx = 0;
+            state = OUT;
+        }
+
+        if(state == VARBET || state == CMDBET){
+            ++varIdx;
+        }
+
+        if(state == OUT){
+            if(*orig != '\0'){
+                new[newIdx] = *orig;
+                ++newIdx;
             }
         }
 
         ++orig;
-        if(state == BET && flag == 0){
-            ptr = orig;
-            ++flag;
-        }
 
 
+    }
+
+    if(state == VARBET || state == CMDBET){
+        fprintf(stderr,"Mistmatched bracket error");
+    }
+
+    new[newIdx] = '\0';
+    int count = 0;
+    for(;count < newIdx; count ++){
+        final[count] = new[count];
+    }
+
+    final[count] = '\0';
+
+
+
+    return expanded;
 }
-    orig = new;
-}
+
 
 /* Process Line
  *
@@ -165,9 +285,10 @@ int expand(char* orig, char* new, int newsize){
  */
 void processline (char *line)
 {
+
     assert(line != NULL);
-    char* buffer = "";
-    expand(line, line, 1024);
+    char new[1024];
+    expand(line, new, 1024);
     int argcp = 0;
     char** args = argparse(line, &argcp);
 
@@ -187,6 +308,7 @@ void processline (char *line)
                     break;
 
                 case 0:
+		            signal(SIGINT, SIGINT);
                     execvp(args[0], args);
                     perror("exec");
                     exit(EXIT_FAILURE);
@@ -204,3 +326,5 @@ void processline (char *line)
     free(args);
 
 }
+
+
