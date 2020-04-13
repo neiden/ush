@@ -74,8 +74,6 @@ char** argparse(char* line, int* argcp){
 
     char** args = malloc((elements+1)*sizeof(char*));
     enum {BET, ARG, QUOTE} state = BET;
-
-
     while(*line != '\0'){
         if(!isspace(*line)){
 
@@ -103,7 +101,6 @@ char** argparse(char* line, int* argcp){
         }
 
         ++line;
-
 
     }
     for(int i = 0; i < elements; i++){
